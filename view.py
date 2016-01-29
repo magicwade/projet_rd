@@ -1,6 +1,6 @@
 import os, os.path
 import random
-import models
+import models.users
 import cherrypy
 import re
 from jinja2 import Environment, FileSystemLoader
@@ -10,11 +10,12 @@ import hashlib
 
 class HomePage():
 	exposed=True
+
 	@cherrypy.tools.accept(media='text/plain')
 	def POST(self,login="",password="",logout=""):
 		""" si un login et un mdp sont fournit alors j'authentifie
 		si logout alors je supprime les session"""
-		myuser=models.GetUserFromLoginAndPassword(login,hashlib.sha512(password.encode()).hexdigest())
+		myuser=models.users.GetUserFromLoginAndPassword(login,hashlib.sha512(password.encode()).hexdigest())
 		tmpl=env.get_template('index.html')
 		if logout=="":
 			if myuser:
@@ -28,9 +29,9 @@ class HomePage():
 			cherrypy.session.pop('login', None)
 			cherrypy.session.pop('admin', None)
 			cherrypy.session.pop('id', None)
-		return tmpl.render(home=True,logged=cherrypy.session.get('logged'), login=cherrypy.session.get('login'),admin=cherrypy.session.get("admin"))
+		raise (cherrypy.HTTPRedirect("/"))
 
-#	@cherrypy.expose
+
 	@cherrypy.tools.accept(media='text/plain')
 	def GET(self):
 		"""Affiche la page home"""
@@ -46,7 +47,7 @@ class HomePage():
 class Register():
 	exposed=True
 	"""Page d'enregistrement"""
-	#@cherrypy.expose
+
 	@cherrypy.tools.accept(media='text/plain')
 	def GET(self):
 		if cherrypy.session.get("admin"):
@@ -54,10 +55,12 @@ class Register():
 		tmpl=env.get_template('register.html')
 		return tmpl.render(register=True, logged=cherrypy.session.get("logged"), login=cherrypy.session.get("login"), admin=cherrypy.session.get("admin"))
 
+
 class RegisterWebService(object):
 	""" Gestion des enregistrementd utilisateur, Seul la méthode post est accepter.
 		Si l'utilisateur existe on affiche une page d'erreur. si les mot de passe ne sont pas identique pareille."""
 	exposed = True
+
 	@cherrypy.tools.accept(media='text/plain')
 	def POST(self, identifiant, email, password, retype_password):
 		if cherrypy.session.get("logged") and not cherrypy.session.get("admin"):
@@ -80,9 +83,9 @@ class RegisterWebService(object):
 		if len(error)>0:
 			return tmpl.render(register=True,logged=cherrypy.session.get("logged"), error="<ul>"+error+"</ul>", login=cherrypy.session.get("login"),admin=cherrypy.session.get("admin"))
 		#on regarde si l'utilisatuer n'existepas deja
-		list_users = models.ExistUserByLoginOrEmail(identifiant, email)
+		list_users = models.users.ExistUserByLoginOrEmail(identifiant, email)
 		if not list_users:
-			new_id_user=models.AddUser(identifiant, email, hashlib.sha512(password.encode()).hexdigest())
+			new_id_user=models.users.AddUser(identifiant, email, hashlib.sha512(password.encode()).hexdigest())
 			cherrypy.session['login']=identifiant
 			cherrypy.session['logged']=True
 			cherrypy.session['id']=new_id_user
@@ -96,10 +99,11 @@ class RegisterWebService(object):
 
 		return tmpl.render(register=True,logged=cherrypy.session.get("logged"), login=cherrypy.session.get("login"),admin=cherrypy.session.get("admin"))
 
+
 class Hebergement():
 	exposed=True
 	"""Page d'envoie de fichier sur le serveur"""
-#	@cherrypy.tools.accept(media='text/plain')
+
 	def POST(self,myFile):
 		print("3")
 		rep_stockage="/mnt/diskhdd/Lighthalzen/Storage/"
@@ -117,10 +121,10 @@ class Hebergement():
 		fo.write(all_data)
 		fo.close()	
 
-
 class MyAccount():
-	"""Gestion de mon compte utilisateur"""
 	exposed = True
+	"""Gestion de mon compte utilisateur"""
+
 	@cherrypy.tools.accept(media='text/plain')
 	def GET(self):
 		"""J'affiche les infos d'un utilisateurs.
@@ -129,7 +133,7 @@ class MyAccount():
 		if not cherrypy.session.get("logged"):
 			raise cherrypy.HTTPRedirect("/")
 		tmpl=env.get_template('myaccount.html')
-		myuser=models.ExistUserById(cherrypy.session.get("id"))	
+		myuser=models.users.ExistUserById(cherrypy.session.get("id"))	
 		return tmpl.render(myaccount=True,logged=cherrypy.session.get("logged"), login=cherrypy.session.get("login"),email=myuser[1],admin=cherrypy.session.get("admin"))
 
 	@cherrypy.tools.accept(media='text/plain')
@@ -140,22 +144,22 @@ class MyAccount():
 		if not cherrypy.session.get("id"):
 			raise cherrypy.HTTPRedirect("/")
 		if new_password!="" and new_retype_password == new_password:
-			models.UpdateUserPasswordById(cherrypy.session.get("id"), hashlib.sha512(new_password.encode()).hexdigest())
+			models.users.UpdateUserPasswordById(cherrypy.session.get("id"), hashlib.sha512(new_password.encode()).hexdigest())
 			success+="<li>Mot de passe modifié</li>"
 		elif new_password!="" and new_retype_password != new_password:
 			error+="<li>Les Mots de passe ne sont pas identiques</li>"
 		if re.match(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)", new_email):
-			models.UpdateUserEmailById(cherrypy.session.get("id"),new_email)
+			models.users.UpdateUserEmailById(cherrypy.session.get("id"),new_email)
 			success+="<li>Adresse mail modifié</li>"
 		elif not re.match(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)", new_email) and new_email!="":
 			error+="<li>Veuillez reverifier votre adresse mail.</li>"
 		if len(new_login)>=3:
-			models.UpdateUserLoginById(cherrypy.session.get("id"), new_login)
+			models.users.UpdateUserLoginById(cherrypy.session.get("id"), new_login)
 			cherrypy.session["login"]=new_login
 			success+="<li>Login modifié</li>"
 		elif new_login!="" and len(new_login)<3:
 			error+="<li>Votre Login doit contenir au moins 3 caractères</li>"
-		myuser=models.ExistUserById(cherrypy.session.get("id"))
+		myuser=models.users.ExistUserById(cherrypy.session.get("id"))
 		tmpl=env.get_template('myaccount.html')
 		return tmpl.render(myaccount=True,logged=cherrypy.session.get("logged"), login=cherrypy.session.get("login"),email=myuser[1], success=success, error=error,admin=cherrypy.session.get("admin"))
 
@@ -167,10 +171,9 @@ class Administration():
 	def GET(self):
 		if not cherrypy.session.get("admin"):
 			raise cherrypy.HTTPRedirect("/")
-		all_users = models.GetAllUsers()
+		all_users = models.users.GetAllUsers()
 		tmpl=env.get_template('administration.html')
 		return tmpl.render(administration=True,logged=cherrypy.session.get("logged"), login=cherrypy.session.get("login"),admin=cherrypy.session.get("admin"),all_users=all_users)
-
 
 class Account():
 	exposed = True
@@ -185,7 +188,7 @@ class Account():
 		#si aucun utilisateur n'a était transmis on le renvoie vers la page d'administration
 		if not id_user:
 			raise cherrypy.HTTPRedirect("/administration")
-		myuser=models.GetUserById(id_user)
+		myuser=models.users.GetUserById(id_user)
 		if not myuser:
 			error="User {0} not found in database"
 		tmpl=env.get_template('account.html')
@@ -203,23 +206,22 @@ class Account():
 		success=""
 		error=""
 		if new_password!="" and new_retype_password == new_password:
-			models.UpdateUserPasswordById(id_user, hashlib.sha512(new_password.encode()).hexdigest())
+			models.users.UpdateUserPasswordById(id_user, hashlib.sha512(new_password.encode()).hexdigest())
 			success+="<li>Mot de passe modifié</li>"
 		elif new_password!="" and new_retype_password != new_password:
 			error+="<li>Les Mots de passe ne sont pas identiques</li>"
 		if re.match(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)", new_email):
-			models.UpdateUserEmailById(id_user,new_email)
+			models.users.UpdateUserEmailById(id_user,new_email)
 			success+="<li>Adresse mail modifié</li>"
 		elif not re.match(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)", new_email) and new_email!="":
 			error+="<li>Veuillez reverifier votre adresse mail.</li>"
 		if len(new_login)>=3:
-			models.UpdateUserLoginById(id_user, new_login)
+			models.users.UpdateUserLoginById(id_user, new_login)
 			login=new_login
 			cherrypy.session["login"]=new_login
 			success+="<li>Login modifié</li>"
 		elif new_login!="" and len(new_login)<3:
 			error+="<li>Votre Login doit contenir au moins 3 caractères.</li>"
-		#myuser=models.ExistUserById(id_user)
 		#list_myuser[0]=myuser
 		cherrypy.session['message']=(success,error)
 		#tmpl=env.get_template('account.html')
