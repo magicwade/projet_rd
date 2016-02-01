@@ -5,9 +5,13 @@ import cherrypy
 import re
 from jinja2 import Environment, FileSystemLoader
 import hashlib
+import psycopg2
 
 env = Environment(loader=FileSystemLoader('templates'))
 
+def connect():
+	# Create a connection and store it in the current thread
+	cherrypy.thread_data.db = psycopg2.connect("dbname=projet_rd user=postgres host=localhost password=zonarisk")
 
 class HomePage():
 	exposed=True
@@ -16,7 +20,7 @@ class HomePage():
 	def POST(self,login="",password="",logout=""):
 		""" si un login et un mdp sont fournit alors j'authentifie
 		si logout alors je supprime les session"""
-		myuser=models.users.GetUserFromLoginAndPassword(login,hashlib.sha512(password.encode()).hexdigest())
+		myuser=models.users.GetUserFromLoginAndPassword(cherrypy.thread_data.db,login,hashlib.sha512(password.encode()).hexdigest())
 		tmpl=env.get_template('index.html')
 		if logout=="":
 			if myuser:
@@ -40,7 +44,6 @@ class HomePage():
 		all_files=[]
 		for nom_fichier in os.listdir(rep_stockage):
 			all_files.append({'filename':nom_fichier,'size':os.path.getsize(rep_stockage+"/"+nom_fichier)})
-		print (all_files)
 		tmpl=env.get_template('index.html')
 		return tmpl.render(home=True,logged=cherrypy.session.get("logged"), login=cherrypy.session.get("login"),admin=cherrypy.session.get("admin"),all_files=all_files)
 
@@ -86,9 +89,9 @@ class RegisterWebService(object):
 			return tmpl.render(register=True,logged=cherrypy.session.get("logged"), error="<ul>"+error+"</ul>", login=cherrypy.session.get("login"),admin=cherrypy.session.get("admin"))
 
 		#on regarde si l'utilisatuer n'existepas deja
-		list_users = models.users.ExistUserByLoginOrEmail(identifiant, email)
+		list_users = models.users.ExistUserByLoginOrEmail(cherrypy.thread_data.db,identifiant, email)
 		if not list_users:
-			new_id_user=models.users.AddUser(identifiant, email, hashlib.sha512(password.encode()).hexdigest())
+			new_id_user=models.users.AddUser(cherrypy.thread_data.db,identifiant, email, hashlib.sha512(password.encode()).hexdigest())
 			cherrypy.session['login']=identifiant
 			cherrypy.session['logged']=True
 			cherrypy.session['id']=new_id_user
@@ -108,12 +111,9 @@ class Hebergement():
 	"""Page d'envoie de fichier sur le serveur"""
 
 	def POST(self,myFile):
-		print("3")
 		rep_stockage="/mnt/diskhdd/Lighthalzen/Storage/"
 		if not cherrypy.session.get("logged"):
-			print("4")
 			raise cherrypy.HTTPRedirect("/")
-		print(myFile.filename)
 		fo = open(rep_stockage + myFile.filename, 'wb')
 		all_data = bytearray()
 		while True:
@@ -136,7 +136,7 @@ class MyAccount():
 		if not cherrypy.session.get("logged"):
 			raise cherrypy.HTTPRedirect("/")
 		tmpl=env.get_template('myaccount.html')
-		myuser=models.users.ExistUserById(cherrypy.session.get("id"))	
+		myuser=models.users.ExistUserById(cherrypy.thread_data.db,cherrypy.session.get("id"))	
 		return tmpl.render(myaccount=True,logged=cherrypy.session.get("logged"), login=cherrypy.session.get("login"),email=myuser[1],admin=cherrypy.session.get("admin"))
 
 	@cherrypy.tools.accept(media='text/plain')
@@ -147,22 +147,22 @@ class MyAccount():
 		if not cherrypy.session.get("id"):
 			raise cherrypy.HTTPRedirect("/")
 		if new_password!="" and new_retype_password == new_password:
-			models.users.UpdateUserPasswordById(cherrypy.session.get("id"), hashlib.sha512(new_password.encode()).hexdigest())
+			models.users.UpdateUserPasswordById(cherrypy.thread_data.db,cherrypy.session.get("id"), hashlib.sha512(new_password.encode()).hexdigest())
 			success+="<li>Mot de passe modifié</li>"
 		elif new_password!="" and new_retype_password != new_password:
 			error+="<li>Les Mots de passe ne sont pas identiques</li>"
 		if re.match(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)", new_email):
-			models.users.UpdateUserEmailById(cherrypy.session.get("id"),new_email)
+			models.users.UpdateUserEmailById(cherrypy.thread_data.db,cherrypy.session.get("id"),new_email)
 			success+="<li>Adresse mail modifié</li>"
 		elif not re.match(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)", new_email) and new_email!="":
 			error+="<li>Veuillez reverifier votre adresse mail.</li>"
 		if len(new_login)>=3:
-			models.users.UpdateUserLoginById(cherrypy.session.get("id"), new_login)
+			models.users.UpdateUserLoginById(cherrypy.thread_data.db,cherrypy.session.get("id"), new_login)
 			cherrypy.session["login"]=new_login
 			success+="<li>Login modifié</li>"
 		elif new_login!="" and len(new_login)<3:
 			error+="<li>Votre Login doit contenir au moins 3 caractères</li>"
-		myuser=models.users.ExistUserById(cherrypy.session.get("id"))
+		myuser=models.users.ExistUserById(cherrypy.thread_data.db,cherrypy.session.get("id"))
 		tmpl=env.get_template('myaccount.html')
 		return tmpl.render(myaccount=True,logged=cherrypy.session.get("logged"), login=cherrypy.session.get("login"),email=myuser[1], success=success, error=error,admin=cherrypy.session.get("admin"))
 
@@ -175,7 +175,7 @@ class Administration():
 	def GET(self):
 		if not cherrypy.session.get("admin"):
 			raise cherrypy.HTTPRedirect("/")
-		all_users = models.users.GetAllUsers()
+		all_users = models.users.GetAllUsers(cherrypy.thread_data.db)
 		tmpl=env.get_template('administration.html')
 		return tmpl.render(administration=True,logged=cherrypy.session.get("logged"), login=cherrypy.session.get("login"),admin=cherrypy.session.get("admin"),all_users=all_users)
 
@@ -195,7 +195,7 @@ class Account():
 		#si aucun utilisateur n'a était transmis on le renvoie vers la page d'administration
 		if not id_user:
 			raise cherrypy.HTTPRedirect("/administration")
-		myuser=models.users.GetUserById(id_user)
+		myuser=models.users.GetUserById(cherrypy.thread_data.db,id_user)
 		if not myuser:
 			error="User not found in database"
 		tmpl=env.get_template('account.html')
@@ -216,21 +216,21 @@ class Account():
 
 		#MOT DE PASS
 		if new_password!="" and new_retype_password == new_password:
-			models.users.UpdateUserPasswordById(id_user, hashlib.sha512(new_password.encode()).hexdigest())
+			models.users.UpdateUserPasswordById(cherrypy.thread_data.db,id_user, hashlib.sha512(cherrypy.thread_data.db,new_password.encode()).hexdigest())
 			success+="<li>Mot de passe modifié</li>"
 		elif new_password!="" and new_retype_password != new_password:
 			error+="<li>Les Mots de passe ne sont pas identiques</li>"
 		
 		#MAIL
 		if re.match(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)", new_email):
-			models.users.UpdateUserEmailById(id_user,new_email)
+			models.users.UpdateUserEmailById(cherrypy.thread_data.db,id_user,new_email)
 			success+="<li>Adresse mail modifié</li>"
 		elif not re.match(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)", new_email) and new_email!="":
 			error+="<li>Veuillez reverifier votre adresse mail.</li>"
 
 		#Login
 		if len(new_login)>=3:
-			models.users.UpdateUserLoginById(id_user, new_login)
+			models.users.UpdateUserLoginById(cherrypy.thread_data.db,id_user, new_login)
 			login=new_login
 			cherrypy.session["login"]=new_login
 			success+="<li>Login modifié</li>"
@@ -238,7 +238,7 @@ class Account():
 			error+="<li>Votre Login doit contenir au moins 3 caractères.</li>"
 		#DROITS
 		if new_rights!="":
-			models.users.UpdateRoleAdmin(id_user,new_rights)
+			models.users.UpdateRoleAdmin(cherrypy.thread_data.db,id_user,new_rights)
 			success+="<li>Les droits on été changé modifié</li>"
 		cherrypy.session['message']=(success,error)
 
@@ -253,10 +253,12 @@ class Account():
 
 
 if __name__ == '__main__':
+	cherrypy.engine.subscribe('start_thread',connect)
 	conf = {
 			'global': {
 				'server.socket_host': "0.0.0.0",
-				'server.socket_port': 7000
+				'server.socket_port': 7000,
+				'server.thread_pool': 10
 			},
 			'/': {
 				'tools.sessions.on': True,
