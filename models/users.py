@@ -52,12 +52,17 @@ def UpdateUserEmailById(id,email):
 		r=c.cursor()
 		r.execute("update users set email=%s where id=%s;",  [email,id])
 
+def UpdateRoleAdmin(id,admin):
+	with psycopg2.connect("dbname=projet_rd user=postgres host=localhost password=zonarisk") as c:
+		r=c.cursor()
+		r.execute("update users set admin=%s where id=%s;",  [admin,id])
 
 def GetUserById(id):
 	with psycopg2.connect("dbname=projet_rd user=postgres host=localhost password=zonarisk") as c:
 		r=c.cursor()
 		r.execute("SELECT login, email, admin FROM users where id=%s;",[id])
 		return r.fetchone()
+	
 #for i in ExistUser('luigi','wario@nintendo.fr'):
 #	print (i[1])
 #AddUser("wario","wario@nintendo.fr","test")

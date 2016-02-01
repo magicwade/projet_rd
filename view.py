@@ -190,7 +190,7 @@ class Account():
 			raise cherrypy.HTTPRedirect("/administration")
 		myuser=models.users.GetUserById(id_user)
 		if not myuser:
-			error="User {0} not found in database"
+			error="User not found in database"
 		tmpl=env.get_template('account.html')
 		message=cherrypy.session.get("message")
 		cherrypy.session.pop('message',None)
@@ -198,23 +198,28 @@ class Account():
 		return tmpl.render(administration=True,logged=cherrypy.session.get("logged"), login=cherrypy.session.get("login"), admin=cherrypy.session.get("admin"), myuser=myuser, error=error, id_user=id_user, message=message)
 
 	@cherrypy.tools.accept(media='text/plain')
-	def POST(self,id_user,new_login="",new_email="",new_password="",new_retype_password="",rights=""):
+	def POST(self,id_user,new_login="",new_email="",new_password="",new_retype_password="",new_rights=""):
 		"""Je modifie uniquement les champs renseigné"""
 		logged=cherrypy.session.get("logged")
 		login=cherrypy.session.get("login")
 		#gestion des erreur de saisie
 		success=""
 		error=""
+		#MOT DE PASS
 		if new_password!="" and new_retype_password == new_password:
 			models.users.UpdateUserPasswordById(id_user, hashlib.sha512(new_password.encode()).hexdigest())
 			success+="<li>Mot de passe modifié</li>"
 		elif new_password!="" and new_retype_password != new_password:
 			error+="<li>Les Mots de passe ne sont pas identiques</li>"
+		
+		#MAIL
 		if re.match(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)", new_email):
 			models.users.UpdateUserEmailById(id_user,new_email)
 			success+="<li>Adresse mail modifié</li>"
 		elif not re.match(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)", new_email) and new_email!="":
 			error+="<li>Veuillez reverifier votre adresse mail.</li>"
+
+		#Login
 		if len(new_login)>=3:
 			models.users.UpdateUserLoginById(id_user, new_login)
 			login=new_login
@@ -222,10 +227,13 @@ class Account():
 			success+="<li>Login modifié</li>"
 		elif new_login!="" and len(new_login)<3:
 			error+="<li>Votre Login doit contenir au moins 3 caractères.</li>"
-		#list_myuser[0]=myuser
+		#DROITS
+		if new_rights!="":
+			models.users.UpdateRoleAdmin(id_user,new_rights)
+			success+="<li>Les droits on été changé modifié</li>"
 		cherrypy.session['message']=(success,error)
-		#tmpl=env.get_template('account.html')
-		#return tmpl.render(administration=True,logged=cherrypy.session.get("logged"), login=cherrypy.session.get("login"), admin=cherrypy.session.get("admin"), myuser=myuser, error=error, id_user=id_user)
+
+		#JE VERIFIE SI L'ID TRANSMIT ET BIEN UN NOMBRE
 		try:
 			int(id_user)
 		except ValueError:
