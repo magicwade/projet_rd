@@ -4,8 +4,9 @@ import models.users
 import cherrypy
 import re
 from jinja2 import Environment, FileSystemLoader
-env = Environment(loader=FileSystemLoader('templates'))
 import hashlib
+
+env = Environment(loader=FileSystemLoader('templates'))
 
 
 class HomePage():
@@ -67,6 +68,7 @@ class RegisterWebService(object):
 			raise cherrypy.HTTPRedirect("/")
 		tmpl=env.get_template('registerwebservice.html')
 		error=""
+
 		#gestion des erreur de saisie
 		if identifiant=="":
 			error+="<li>Identifiant non renseigné.</li>"
@@ -82,6 +84,7 @@ class RegisterWebService(object):
 			error+="<li>Les mots de passe ne sont pas identiques</li>"
 		if len(error)>0:
 			return tmpl.render(register=True,logged=cherrypy.session.get("logged"), error="<ul>"+error+"</ul>", login=cherrypy.session.get("login"),admin=cherrypy.session.get("admin"))
+
 		#on regarde si l'utilisatuer n'existepas deja
 		list_users = models.users.ExistUserByLoginOrEmail(identifiant, email)
 		if not list_users:
@@ -167,6 +170,7 @@ class Administration():
 	exposed = True
 	"""Gestion de Tous les compte Utilisateurs
 	Liste tous les utilisateur """
+
 	@cherrypy.tools.accept(media='text/plain')
 	def GET(self):
 		if not cherrypy.session.get("admin"):
@@ -179,12 +183,15 @@ class Account():
 	exposed = True
 	""" Gestion de l'utilisateurs passer en paramétres.
 	la page n'accessible que par les utilisateurs ayant le droit admin"""
+
 	@cherrypy.tools.accept(media='text/plain')
 	def GET(self,id_user=False):
+
 		#si l'utilisateur n'a pas les droits on l'envoie sur la page d'acceuil
 		error=False
 		if not cherrypy.session.get("admin") :
 			raise cherrypy.HTTPRedirect("/")
+
 		#si aucun utilisateur n'a était transmis on le renvoie vers la page d'administration
 		if not id_user:
 			raise cherrypy.HTTPRedirect("/administration")
@@ -202,9 +209,11 @@ class Account():
 		"""Je modifie uniquement les champs renseigné"""
 		logged=cherrypy.session.get("logged")
 		login=cherrypy.session.get("login")
+
 		#gestion des erreur de saisie
 		success=""
 		error=""
+
 		#MOT DE PASS
 		if new_password!="" and new_retype_password == new_password:
 			models.users.UpdateUserPasswordById(id_user, hashlib.sha512(new_password.encode()).hexdigest())
