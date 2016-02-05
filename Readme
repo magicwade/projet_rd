@@ -1,0 +1,33 @@
+Readme
+	Ce projet a pour objectif final de mettre a disposition de l'utilsiateur une plateform d'hébergement sécurisé.
+
+Plateform 
+	Linux
+
+Dépendnace
+	Postgresql
+	Une base de donnée est donné a la racine du projet.
+	- strucure_bdd.sql: contient la structure de la base de donnée
+	- data.sql contient les donnée sql nécessarire (1 compte + quelque utilisateur) 
+	
+Installation
+	pip3 cherrypy
+
+Lancemenent de serveur
+	python3 src/view.py
+
+
+Configuration par défaut
+	Administrateur Par défaut:
+	Login: Master Hand
+	password: test
+	Le serveur démarre sur le port: 7000 host: 0.0.0.0
+	les fichier static sont sauvegardé dans ./public
+	Emplacement des fichier stocké : ./public/storage
+
+Fonctionnalité supporter
+	Actuellement le projet ne permet que la gestion des utilisateurs.
+	Le dépot de fichier non chiffré de manière publique
+	
+Contact
+	email: timwade59@gmail.com
