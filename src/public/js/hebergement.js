@@ -19,7 +19,7 @@ function prompt(){
 
 	var xhr = new XMLHttpRequest();
 	xhr.upload.addEventListener("progress", updateProgress, false);
-	xhr.open("POST", "/hebergement");
+	xhr.open("POST", "/upload");
 	xhr.send(data);
 }
 function updateProgress(evt){
