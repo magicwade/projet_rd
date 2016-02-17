@@ -34,17 +34,25 @@
 			   <div class="center"><h2>Download</h2></div>
 		   <table class="table">
 			   <tr>
-				   <th>Nom du fichier </th><th class="center">Taille du fichier</th><th class="center">Télécharger</th>
+				   <th>Nom du fichier </th><th class="center">Taille du fichier</th><th class="center">Télécharger</th><th class="center">Suppression</th>
 			   </tr>
-			   {% for file in all_files %}
+			   {% for file in all_my_files %}
 			   <tr>
-				   <td>{{ file['filename'] }}</td>
-				   <td class="center">{{ file.size }}</td>
+				   <td>{{file[1]}}</td>
+				   <td class="center">{{file[2]}}</td>
 				   <td class="center">
-					   <a href="/download/{{file['filename']}}"> 
+					   <a href="/download/{{file[0]}}"> 
 					   <button type="button" class="btn btn-default btn-sm">
 						   <span class="glyphicon glyphicon-download-alt" aria-hiddent="true"</span>
 					   </button>
+				    </td>
+				   <td class="center">
+					   <form method="POST" action="../deletefilewebservice">
+						   <input type="hidden" name="file_id" value="{{file[0]}}">
+						   <button type="submit" class="btn btn-default btn-sm">
+							   <span class="glyphicon glyphicon-glass" aria-hiddent="true"</span>
+						   </button>
+					   </form>
 				    </td>
 			   </tr>
 

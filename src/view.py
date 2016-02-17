@@ -49,7 +49,7 @@ class HomePage():
 		Affiche la page home
 		"""
 		all_files = []
-		all_my_files = cherrypy.thread_data.files.get_all_files_by_id_user(\
+		all_my_files = cherrypy.thread_data.files.get_all_files_by_user_id(\
 				cherrypy.session.get("id"))
 		for i,file in enumerate(all_my_files):
 			unite="o"
@@ -224,12 +224,12 @@ class RegisterWebService(object):
 		list_users = cherrypy.thread_data.users.get_user_by_login_or_email(\
 				identifiant,email)
 		if not list_users:
-			new_id_user = cherrypy.thread_data.users.add_user(\
+			new_user_id = cherrypy.thread_data.users.add_user(\
 					identifiant, email,
 					hashlib.sha512(password.encode()).hexdigest())
 			cherrypy.session['login'] = identifiant
 			cherrypy.session['logged'] = True
-			cherrypy.session['id'] = new_id_user
+			cherrypy.session['id'] = new_user_id
 		else:
 			for myuser in list_users:
 				if myuser[0] == identifiant:
@@ -377,7 +377,7 @@ class Account():
 	"""
 
 	@cherrypy.tools.accept(media='text/plain')
-	def GET(self,id_user=False):
+	def GET(self,user_id=False):
 		"""
 		Page affichant les information de l'utilisateurs a modifié
 		si l'utilisateur n'a pas les droits on l'envoie sur la page d'acceuil.
@@ -389,23 +389,23 @@ class Account():
 		si aucun utilisateur n'a était transmis on le renvoie vers 
 		la page d'administration
 		"""
-		if not id_user:
+		if not user_id:
 			raise cherrypy.HTTPRedirect("/administration")
-		myuser = cherrypy.thread_data.users.get_user_by_id(id_user)
+		myuser = cherrypy.thread_data.users.get_user_by_id(user_id)
 		if not myuser:
 			error = "User not found in database"
-		tmpl=env.get_template('account.html')
-		message=cherrypy.session.get("message")
+		tmpl = env.get_template('account.html')
+		message = cherrypy.session.get("message")
 		cherrypy.session.pop('message',None)
 		return tmpl.render(administration=True,
 				logged=cherrypy.session.get("logged"), 
 				login=cherrypy.session.get("login"), 
 				admin=cherrypy.session.get("admin"), 
-				myuser=myuser, error=error, id_user=id_user, message=message)
+				myuser=myuser, error=error, user_id=user_id, message=message)
 
 
 	@cherrypy.tools.accept(media='text/plain')
-	def POST(self,id_user,new_login="",new_email="",new_password="",
+	def POST(self,user_id,new_login="",new_email="",new_password="",
 			new_retype_password="",new_rights=""):
 		"""
 			Je modifie uniquement les champs renseigné
@@ -419,14 +419,14 @@ class Account():
 		#MOT DE PASS
 		if new_password != "" and new_retype_password == new_password:
 			cherrypy.thread_data.users.update_user_password_by_id(\
-					id_user,hashlib.sha512(new_password.encode()).hexdigest())
-			success+="<li>Mot de passe modifié</li>"
+					user_id,hashlib.sha512(new_password.encode()).hexdigest())
+			success += "<li>Mot de passe modifié</li>"
 		elif new_password != "" and new_retype_password != new_password:
-			error+="<li>Les Mots de passe ne sont pas identiques</li>"
+			error += "<li>Les Mots de passe ne sont pas identiques</li>"
 		#MAIL
 		if re.match(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)",
 				new_email):
-			cherrypy.thread_data.users.update_user_email_by_id(id_user,
+			cherrypy.thread_data.users.update_user_email_by_id(user_id,
 					new_email)
 			success += "<li>Adresse mail modifié</li>"
 		elif new_email!="" and not re.match(\
@@ -436,12 +436,12 @@ class Account():
         
 		#Login
 		if len(new_login) >= 3:
-			cherrypy.thread_data.users.update_user_login_by_id(id_user,
+			cherrypy.thread_data.users.update_user_login_by_id(user_id,
 					new_login)
 			login = new_login
 			#modification de la variable de session si l'utilisateur ce
 			#modifie lui même
-			if cherrypy.session['id']==id_user:
+			if cherrypy.session['id']==user_id:
 				cherrypy.session["login"] = new_login
 			success += "<li>Login modifié</li>"
 		elif new_login != "" and len(new_login)<3:
@@ -450,7 +450,7 @@ class Account():
 
 		#DROITS
 		if new_rights != "":
-			cherrypy.thread_data.users.update_admin_role(id_user,new_rights)
+			cherrypy.thread_data.users.update_admin_role(user_id,new_rights)
 			success += "<li>Les droits on été changé modifié</li>"
 		cherrypy.session['message']=(success,error)
             
@@ -459,12 +459,12 @@ class Account():
 
 		#verifier si l'id transmit et vien un nombre
 		try:
-			int(id_user)
+			int(user_id)
 		except ValueError:
 			raise (cherrypy.HTTPRedirect("/administration"))
 		else:
-			id_user = int(id_user)
-			raise (cherrypy.HTTPRedirect("/account/{0}".format(id_user)))
+			user_id = int(user_id)
+			raise (cherrypy.HTTPRedirect("/account/{0}".format(user_id)))
 
 class DeleteUserWebService(object):
 	"""
