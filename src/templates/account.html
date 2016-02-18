@@ -20,13 +20,41 @@
 					   <input type="email" class="form-control" name="new_email" placeholder="{{myuser[1]}}">
 				   </div>
 				   <div class="form-group">
-					   <label for=new_password"> Password</label>
+					   <label for="new_password"> Password</label>
 					   <input type="password" class="form-control" name="new_password">
 				   </div>
 				   <div class="form-group">
 					   <label for="new_retype_password">Password Check</label>
 					   <input type="password" class="form-control" name="new_retype_password">
 				   </div>
+				   {% if admin %}
+				   <div class="form-group">
+					   <label for="right">Droits</label>
+					   <select name="new_rights" class = "form-control">
+						   <option value = "">
+						   	{% if myuser[2] %}
+								Admin
+						   	{% else %}
+								User
+							{% endif %}
+						   </option>
+						   <option value=
+						   {% if myuser[2] %}
+								"False"
+						   	{% else %}
+								"True"
+							{% endif %}>
+							{% if  myuser[2] %}
+								User
+						   	{% else %}
+								Admin
+							{% endif %}
+
+						   </option>
+
+					   </select>
+				   </div>
+				   {% endif %}
 				   <input type="hidden" value="{{user_id}}" name="user_id">
 				   <input type="submit" class="btn btn-default" value="Modifier le compte: {{myuser[0]}}">
 				   <a class="btn btn-default" href="/administration">Back</a>
