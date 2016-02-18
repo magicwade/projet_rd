@@ -100,9 +100,10 @@ class Download():
 	def GET(self,id_file=None):
 		if not cherrypy.session.get("logged") or id_file == None:
 			raise cherrypy.HTTPRedirect("/")
-		myFile = cherrypy.thread_data.files.get_file_by_id(id_file)
-		cherrypy.response.headers['Content-Disposition']='attachment; "\
-				"filename="{0}"'.format(myFile[0])
+		myFile = cherrypy.thread_data.files.get_meta_data_file_by_id(id_file)
+		print(myFile[0])
+		cherrypy.response.headers['Content-Disposition']='attachment; '+ \
+				' filename="{0}"'.format(myFile[0])
 		cherrypy.response.headers['Content-Type']='application/octet-stream'
 		cherrypy.response.headers['Content-Length']=myFile[1]
 		oid_data=myFile[2]
@@ -159,11 +160,9 @@ class DeleteFileWebService(object):
 				my_file[3] != cherrypy.session.get("id"):
 					raise cherrypy.HTTPRedirect("/")
 		#3
-		print(my_file[3])
 		large_object = cherrypy.thread_data.files.get_file_handler_by_oid(\
 				my_file [2],'rb')
 		large_object.unlink()
-		print(my_file[2])
 		#4
 		cherrypy.thread_data.files.delete_file_by_id(file_id)
 		#5
@@ -259,25 +258,27 @@ class Upload():
 		if not cherrypy.session.get("logged") or \
 				not cherrypy.session.get("id"):
 					raise cherrypy.HTTPRedirect("/")
-		full_path = config_server['DEFAULT']['StorageDirectory'] + \
-				myFile.filename
+		#Get Size file
+		myFile.file.seek(0,2)
+		size = myFile.file.tell()
+		myFile.file.seek(0)
+		print(size)
 		oid_file = cherrypy.thread_data.files.add_meta_data_file(
-				myFile.filename,cherrypy.session.get('id'))
+				myFile.filename,size,cherrypy.session.get('id'))
 		print("wtf")
 		large_object = cherrypy.thread_data.files.get_file_handler_by_oid(\
 				oid_file[1],'rwb')
 
 		print("ok")
-		size=0
+
 		while True:
 			data = myFile.file.read(4096)
-			size += len(data)
 			if not data:
 				large_object.close()
 				break
 			large_object.write(data)
-		cherrypy.thread_data.files.update_meta_data_size_by_id(size,
-				oid_file[0])
+#		cherrypy.thread_data.files.update_meta_data_size_by_id(size,
+#				oid_file[0])
 		cherrypy.thread_data.files.commit()
 
 class MyAccount():
@@ -411,6 +412,8 @@ class Account():
 			Je modifie uniquement les champs renseigné
 		gestion des erreurs de saisie
 		"""
+		if not cherrypy.session.get("admin") :
+			raise cherrypy.HTTPRedirect("/")
 		logged = cherrypy.session.get("logged")
 		login = cherrypy.session.get("login")
 		success = ""
