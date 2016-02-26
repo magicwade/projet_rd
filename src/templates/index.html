@@ -2,10 +2,6 @@
 {% block title %} Index Project R&D{% endblock %}
 {% block content %}
            <div class="col-md-8">
-		   <p>
-		   Bon maintenant faut regarder les cluster postgres et enfin
-		   voir comment le threading_pool fonctionne en postgres parceque j'ai rien compris
-		   </p>
 		   {% if logged %}
 		   <div class="bg-info" id=upload_ok>
 			   <div class="center">
@@ -29,7 +25,7 @@
 		   <!--		   </form>-->
 		   </table>
 		   </div> 
-		   <div class="bg-danger" id="upload_nok" {% if upload_error%}style=""{% else %}style="display:none"{% endif %}>{% if upload_error %}Quotas Dépassé, supprimer des fichiers avant de pouvoir upload un fichier à nouveau{% endif %}
+		   <div class="bg-danger" id="upload_nok" {% if upload_error%}style=""{% else %}style="display:none"{% endif %}>{% if upload_error %}Quotas Dépassé, supprimez des fichiers avant de pouvoir upload un fichier à nouveau{% endif %}
 		   </div>
 		   <div>
 		   <table class="table"> 
