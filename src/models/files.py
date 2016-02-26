@@ -22,14 +22,14 @@ class File:
 		"""renvoie la liste de tout les utilisateurs enregistré dans le site"""
 		with self.connection.cursor() as result:
 			result.execute("SELECT filename, size, data, user_id FROM files" +\
-					" where id = %s;",[id])
+					" WHERE id = %s;",[id])
 			return result.fetchone()
 
-	def add_meta_data_file(self, filename,id):
+	def add_meta_data_file(self, filename,size,id):
 		with self.connection.cursor() as result:
 			result.execute("INSERT INTO files (filename,size,data,user_id)" + \
-					" values (%s, 0, lo_create(0), %s) returning id,data",
-					[filename,id])
+					" values (%s, %s, lo_create(0), %s) returning id,data",
+					[filename,size,id])
 			return result.fetchone()
 	def update_meta_data_size_by_id(self,size,id):
 		with self.connection.cursor() as result:
@@ -42,6 +42,13 @@ class File:
 		with self.connection.cursor() as result:
 			result.execute("DELETE FROM files where user_id = %s returning" + \
 					" id,filename,size,data",[user_id])
+			return result.fetchall()
+#multi table
+	def get_all_file_by_user_login(self,login):
+		with self.connection.cursor() as result:
+			result.execute("SELECT files.id,files.filename,files.size, " + \
+					"files.data,files.user_id FROM files,users WHERE " + \
+					"users.login = %s AND users.id = files.user_id;",[login])
 			return result.fetchall()
 
 #Large object content

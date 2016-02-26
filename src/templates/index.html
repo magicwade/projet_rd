@@ -7,7 +7,7 @@
 		   voir comment le threading_pool fonctionne en postgres parceque j'ai rien compris
 		   </p>
 		   {% if logged %}
-		   <div class="bg-info">
+		   <div class="bg-info" id=upload_ok>
 			   <div class="center">
 				   <br>
 			   <h2>Upload</h2></div>
@@ -15,7 +15,7 @@
 		   <div class="form-group">
 			   <tr>
 				   <td> <input type="file" name="myFile" id="upFile"></td>
-				   <td class="right"> <input type="submit" class="btn btn-default" onclick="prompt();" value="Mettre en ligne"></td>
+				   <td class="right"> <input id="submitFile" type="submit" class="btn btn-default" onclick="prompt();" value="Mettre en ligne"{% if upload_error and not admin %} disabled{% endif %}></td>
 			   </tr>
 		   </div>
 		    <tr><td colspan="2">
@@ -24,18 +24,44 @@
 					   0%
 				   </div>
 			   </div>
-			   <div style="display:none"id="success-upload">Success ! </div>
+			   <div style="display:none" id="success-upload">Success !</div>
 		    </td></tr>
 		   <!--		   </form>-->
 		   </table>
+		   </div> 
+		   <div class="bg-danger" id="upload_nok" {% if upload_error%}style=""{% else %}style="display:none"{% endif %}>{% if upload_error %}Quotas Dépassé, supprimer des fichiers avant de pouvoir upload un fichier à nouveau{% endif %}
 		   </div>
+		   <div>
+		   <table class="table"> 
+			   <tr> 
+				   <th>quotas max</th>
+				   <th>quotas used</th>
+				   <th></th>
+			   </tr>
+			   <tr>
+				   <td><span id="quotas_limit">{{myuser[3]}}</span>
+				   </td>
+				   <td class>/ <span id="quotas_used">{{myuser[4]}}</span><span id="quotas_used_p"></span></td>
+				   <td >
+					   <button  id="update_quotas" class="btn btn-default" type="button">
+						   Actualiser
+					   </button>
+				   </td>
+			   </tr>
+		   </table>
+	   </div>
 		  <hr>
 		   <div class="bg-default">
 			   <div class="center"><h2>Download</h2></div>
 		   <table class="table">
+			   <tbody>
+			   </tbody>
+			   <tbody>
 			   <tr>
 				   <th>Nom du fichier </th><th class="center">Taille du fichier</th><th class="center">Télécharger</th><th class="center">Suppression</th>
 			   </tr>
+			   </tbody>
+			   <tbody id="all_files">
 			   {% for file in all_my_files %}
 			   <tr>
 				   <td>{{file[1]}}</td>
@@ -43,7 +69,7 @@
 				   <td class="center">
 					   <a href="/download/{{file[0]}}"> 
 					   <button type="button" class="btn btn-default btn-sm">
-						   <span class="glyphicon glyphicon-download-alt" aria-hiddent="true"</span>
+						   <span class="glyphicon glyphicon-download-alt" aria-hiddent="true"></span>
 					   </button>
 				    </td>
 				   <td class="center">
@@ -55,10 +81,8 @@
 					   </form>
 				    </td>
 			   </tr>
-
-
-				</tr>
 			   {% endfor %}
+			   </tbody>
 		   </table>
 
 

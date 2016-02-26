@@ -1,3 +1,11 @@
+value_index={
+	'quotas_limit':parseInt($('#quotas_limit').html()),
+	'quotas_used':parseInt($('#quotas_used').html()),
+	'file_tmp': 0,
+}
+
+
+
 function prompt(){
 	var progress=document.getElementById("progBar");
 	progress.style = "width:0%";
@@ -18,9 +26,29 @@ function prompt(){
 	data.append('myFile', document.getElementById("upFile").files[0]);
 
 	var xhr = new XMLHttpRequest();
+	xhr.onreadystatechange = function() {
+		    if (xhr.readyState == XMLHttpRequest.DONE) {
+			    	all_my_files = JSON.parse(xhr.responseText);
+			    	$("#success-upload").html("Success !");
+				$('#all_files').html("");
+				for (var file in all_my_files){
+					$('#all_files').append(
+						'<tr>'+
+							'<td>'+all_my_files[file][1]+'</td>'+
+							'<td class="center">'+all_my_files[file][2]+'</td>'+
+							'<td class="center"><a href="/download/'+all_my_files[file][0]+'"><button class="btn btn-default btn-sm" type="button"> 						   <span aria-hiddent="true" class="glyphicon glyphicon-download-alt"> </span></button></a>'+
+							'</td>'+
+							'<td class="center">'+
+								'<form action="../deletefilewebservice" method="POST"><input type="hidden" value="'+all_my_files[file][0]+'" name="file_id"><button class="btn btn-default btn-sm" type="submit"><span aria-hiddent="true" class="glyphicon glyphicon-glass"></span></button></form>'+
+							'<td>'+
+						'</tr>');
+				}
+		    }
+	}
 	xhr.upload.addEventListener("progress", updateProgress, false);
 	xhr.open("POST", "/upload");
 	xhr.send(data);
+	
 }
 function updateProgress(evt){
 	if(evt.lengthComputable){
@@ -29,8 +57,10 @@ function updateProgress(evt){
 		progressBar.style = "width:"+percentComplete+"%";
 		progressBar.innerHTML=percentComplete+"%";
 		if (percentComplete==100){
+			value_index.quotas_used = value_index.quotas_used + value_index.file_tmp;
 		//	sleep(3000);
 			//$("#progBar").hide("fast");
+			$("#success-upload").html("Fichier en cours d'enregistrement sur nos serveursn <br > Veuillez patientez...");
 			$("#success-upload").show("slow");
 		}
 	}
@@ -39,4 +69,20 @@ $('#upFile').change(function(){
 	var progress=document.getElementById("progBar");
 	progress.style = "width:0%";
 	progress.innerHTML="0%";
+	alert(this.files[0].size);
+	value_index.file_tmp = this.files[0].size;
+	if (value_index.file_tmp + value_index.quotas_used > value_index.quotas_limit){
+		$('#submitFile').prop('disabled', true)
+		
+	}else{
+		$('#submitFile').prop('disabled', false)
+	}
+	$('#quotas_used').html(value_index.file_tmp + value_index.quotas_used)
 });
+
+
+
+
+
+
+

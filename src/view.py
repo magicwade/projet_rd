@@ -4,6 +4,7 @@ import configparser
 import random
 import cherrypy
 import re
+import json
 from jinja2 import Environment, FileSystemLoader
 import hashlib
 import psycopg2
@@ -81,10 +82,21 @@ class HomePage():
 					all_my_files[i][2] = str(all_my_files[i][2]) + " " + \
 							table_unite[p]
 					break
+		upload_error = True
+		myuser=None
+		if cherrypy.session.get("logged"):
+			myuser = cherrypy.thread_data.users.get_user_by_id(\
+				cherrypy.session.get("id"))
+			print(myuser)
+			if myuser[3] > myuser[4]:
+				upload_error = False
+		print(upload_error)
+
 		tmpl = env.get_template('index.html')
 		return tmpl.render(home=True,logged=cherrypy.session.get("logged"), 
 				login=cherrypy.session.get("login"),
-				admin=cherrypy.session.get("admin"),all_my_files=all_my_files)
+				admin=cherrypy.session.get("admin"),all_my_files=all_my_files,
+				myuser=myuser,upload_error=upload_error)
 
 class Download():
 	exposed = True
@@ -139,11 +151,13 @@ class Register():
 class DeleteFileWebService(object):
 	"""
 	La fonction prend en paramétre un id de fichier
-	- 1 select récupére l'oid du large object a supprimer
+	- 1 select récupére l'oid de large object a supprimer
 	- 2 Si je suis propiétaire du fichier ou  admin je passe
 	- 3 supprime le large object
 	- 4 supprime l'entrée dans la base files
-	- 5 commit
+	- 5 Récupération du quotas de l'utilisateur + recalcule
+	- 6 Modification du quotas de l'utilisateur
+	- 6 commit
 	"""
 	
 	exposed = True
@@ -156,8 +170,10 @@ class DeleteFileWebService(object):
 		print(file_id)
 		my_file = cherrypy.thread_data.files.get_meta_data_file_by_id(file_id)
 		#2
+		file_size = my_file[1]
+		owner_id = my_file[3] 
 		if not cherrypy.session.get('admin') and  \
-				my_file[3] != cherrypy.session.get("id"):
+				owner_id != cherrypy.session.get("id"):
 					raise cherrypy.HTTPRedirect("/")
 		#3
 		large_object = cherrypy.thread_data.files.get_file_handler_by_oid(\
@@ -166,6 +182,12 @@ class DeleteFileWebService(object):
 		#4
 		cherrypy.thread_data.files.delete_file_by_id(file_id)
 		#5
+		my_user = cherrypy.thread_data.users.get_user_by_id(owner_id)
+		quotas_used = my_user[4] - file_size
+		#6
+		cherrypy.thread_data.users.update_user_quotas_by_id(owner_id,
+				quotas_used)
+		#7
 		cherrypy.thread_data.files.commit()
 		raise cherrypy.HTTPRedirect("/")
 
@@ -255,22 +277,38 @@ class Upload():
 
 	@cherrypy.config(**{'response.timeout':3600})
 	def POST(self,myFile):
+		"""
+		- 1 si je suis identifié je passe
+		- 2 calcule de la taille
+		- 3 Récupération des info user
+		- 4 si le quotas n'est pas dépassé ou si je suis admin je passe
+		- 5 ecriture de du fichier en base
+		- 6 update du nouveau quotas
+		- 7 commit
+		"""
+		#1
 		if not cherrypy.session.get("logged") or \
 				not cherrypy.session.get("id"):
 					raise cherrypy.HTTPRedirect("/")
 		#Get Size file
+		#2
 		myFile.file.seek(0,2)
 		size = myFile.file.tell()
 		myFile.file.seek(0)
-		print(size)
+		#3
+		my_user = cherrypy.thread_data.users.get_user_by_id( \
+				cherrypy.session.get('id'))
+		quotas = my_user[4] + size
+		#4
+		if quotas > my_user[3] and not cherrypy.session.get('admin'):
+			raise cherrypy.HTTPRedirect("/")
+		#5
 		oid_file = cherrypy.thread_data.files.add_meta_data_file(
 				myFile.filename,size,cherrypy.session.get('id'))
 		print("wtf")
 		large_object = cherrypy.thread_data.files.get_file_handler_by_oid(\
 				oid_file[1],'rwb')
-
 		print("ok")
-
 		while True:
 			data = myFile.file.read(4096)
 			if not data:
@@ -279,7 +317,33 @@ class Upload():
 			large_object.write(data)
 #		cherrypy.thread_data.files.update_meta_data_size_by_id(size,
 #				oid_file[0])
+		#6
+		cherrypy.thread_data.users.update_user_quotas_by_id(\
+				cherrypy.session.get('id'),quotas)
+		#7
 		cherrypy.thread_data.files.commit()
+
+		all_files = []
+		all_my_files = cherrypy.thread_data.files.get_all_files_by_user_id(\
+				cherrypy.session.get("id"))
+		for i,file in enumerate(all_my_files):
+			unite="o"
+			table_unite= 'O','K','M','G'
+			all_my_files[i]=list(all_my_files[i])
+			for p in reversed(range(0,4)):
+				if int( all_my_files[i][2]) > math.pow(10,p*3):
+					unite = table_unite[p]
+					""" j'arrondi la variable et j'ajoute une unité en
+					fonction du résultat (o/k/m/g)"""
+					all_my_files[i][2]=round(int(all_my_files[i][2]) / \
+							int(math.pow(10,p*3)),1)
+					if all_my_files[i][2] == int(all_my_files[i][2]):
+						all_my_files[i][2] = int(all_my_files[i][2])
+					all_my_files[i][2] = str(all_my_files[i][2]) + " " + \
+							table_unite[p]
+					break
+
+		return json.dumps(all_my_files)
 
 class MyAccount():
 	exposed = True
@@ -298,7 +362,7 @@ class MyAccount():
 			raise cherrypy.HTTPRedirect("/")
 		tmpl = env.get_template('myaccount.html')
 		myuser = cherrypy.thread_data.users.get_user_by_id(\
-				cherrypy.session.get("id"))	
+				cherrypy.session.get("id"))
 		return tmpl.render(myaccount=True,
 				logged=cherrypy.session.get("logged"), 
 				login=cherrypy.session.get("login"),
@@ -407,7 +471,7 @@ class Account():
 
 	@cherrypy.tools.accept(media='text/plain')
 	def POST(self,user_id,new_login="",new_email="",new_password="",
-			new_retype_password="",new_rights=""):
+			new_retype_password="",new_rights="",new_quotas_limit=""):
 		"""
 			Je modifie uniquement les champs renseigné
 		gestion des erreurs de saisie
@@ -456,7 +520,16 @@ class Account():
 			cherrypy.thread_data.users.update_admin_role(user_id,new_rights)
 			success += "<li>Les droits on été changé modifié</li>"
 		cherrypy.session['message']=(success,error)
-            
+		if new_quotas_limit !="":
+			try:
+				quotas_limit=int(new_quotas_limit)
+			except ValueError:
+				error += "<li>le quotas renseigné n'est pas un nombre entier.</li>"
+			else:
+				cherrypy.thread_data.users.update_user_quotas_limit_by_id(user_id,
+						quotas_limit)
+
+
 		#sauvegarde des modification
 		cherrypy.thread_data.users.commit()
 
@@ -473,9 +546,9 @@ class DeleteUserWebService(object):
 	"""
 	La fonction prend en paramétre un id de fichier
 	- 1 Si je suis  admin je passe
-	- 2 je supprime toutes les entrée dans la table file posséder par
-	  l'utilisateur a supprimer, en récupérant les info des en entréer
-	  supprimer
+	- 2 je supprime toutes les entrée dans la table file en fonction de
+	  l'id de l'utilisateur, la commande delete renvoie les info
+	  supprimées.
 	- 3 je supprime le contenue des rfichier dans la base de donnée
 	- 4 supprime l'utilisateurs
 	- 5 commit
@@ -503,6 +576,52 @@ class DeleteUserWebService(object):
 
 	def GET(self):
 		raise cherrypy.HTTPRedirect("/")
+class UpdateQuotasWebService(object):
+	exposed = True
+	@cherrypy.tools.accept(media='application/json')
+	def GET(self,username):
+		""" la fonction prend en paramétre un utilisateur est calcule le
+		quotas
+		- 1 si je suis l'utilisateur en question ou si je suis admin je passe
+		- 2 Récupérer Id utilsateur
+		- 3 select dans la table file de tout les utilisateurs ayant
+		  l'id de l'utilisateur
+		- 4 calcule de la taille utilisé total
+		- 4 mise a jour du champs quotas dans utilisateur.
+		- 5 commit
+		- 6 retour de la variable au format JSON"""
+		data = {}
+		#1
+		if  not cherrypy.session.get('admin') and \
+				cherrypy.session.get('login') != username:
+					data['error'] = "Vous n'avez pas les droits requis pour" +\
+					"effectuer cette operation."
+					return json.dumps(data)
+		#2
+		my_user = cherrypy.thread_data.users.get_user_by_login(username)
+		if not my_user:
+			data['error'] = "L'utilisateur {0} n'existe pas.".format(username)
+			return data
+		#3
+		all_username_files = \
+				cherrypy.thread_data.files.get_all_file_by_user_login(username)
+		#4
+		size = 0
+		for file in all_username_files:
+			size += file[2]
+		#5
+		cherrypy.thread_data.users.update_user_quotas_by_login(username,size)
+		cherrypy.thread_data.users.commit()
+		#6
+		data['size'] = size
+		return json.dumps(data)
+
+
+
+
+
+
+
 def ConfigurationCheck(config_server):
 	if 'StorageDirectory' not in config_server['DEFAULT']:
 		config_server['DEFAULT']['StorageDirectory'] = './public/storage/' 
@@ -563,7 +682,7 @@ if __name__ == '__main__':
 	webapp.registerwebservice = RegisterWebService()
 
 	webapp.myaccount = MyAccount()
-
+	webapp.updatequotaswebservice = UpdateQuotasWebService()
 	webapp.administration = Administration()
 	webapp.account = Account()
 	webapp.deleteuserwebservice = DeleteUserWebService()

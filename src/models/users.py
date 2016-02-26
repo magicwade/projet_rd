@@ -14,23 +14,30 @@ class User:
 		if email is None:
 			email=login
 		with self.connection.cursor() as result:
-			result.execute("SELECT login,email,admin from users where" + 
-					" login=%s or email=%s ;",  [login,email.lower()])
+			result.execute("SELECT login,email,admin,quotas_limit,quotas " + \
+			"from users where login=%s or email=%s ;", [login,email.lower()])
 			return result.fetchall()
+	
+	def get_user_by_login(self,login):
+		with self.connection.cursor() as result:
+			result.execute("SELECT id, login,email,admin,quotas_limit,quotas " + \
+			"from users where login=%s;", [login])
+			return result.fetchone()
 
 	def get_user_by_login_or_email_and_password(self,login,mdp):
 		"""récupérer un utilisateur en fonction du mdp et du login 
 		(que le login soit un mail ou un identifiant)"""
 		with self.connection.cursor() as result:
-			result.execute("SELECT id,login,email,admin from users where"+
-					" password=%s and (login=%s or email=%s);",
+			result.execute("SELECT id,login,email,admin,quotas_limit,quotas "+\
+					"from users where password=%s and (login=%s or email=%s);",
 					[mdp,login,login.lower()])
 			return result.fetchall()
 
 	def get_all_users(self):
 		"""renvoie la liste de tout les utilisateurs enregistré dans le site"""
 		with self.connection.cursor() as result:
-			result.execute("SELECT id,login,admin FROM users;")
+			result.execute("SELECT id,login,admin,quotas_limit,quotas " +\
+					"FROM users;")
 			return result.fetchall()
 
 	def add_user(self,identifiant,email,mdp):
@@ -56,6 +63,20 @@ class User:
 			result.execute("update users set email=%s where id=%s;",
 					[email,id])
 
+	def update_user_quotas_limit_by_id(self,id,quotas_limit):
+		with self.connection.cursor() as result:
+			result.execute("update users set quotas_limit=%s where id=%s;",
+					[quotas_limit,id])
+
+	def update_user_quotas_by_id(self,id,quotas):
+		with self.connection.cursor() as result:
+			result.execute("update users set quotas=%s where id=%s;",
+					[quotas,id])
+
+	def update_user_quotas_by_login(self,login,quotas):
+		with self.connection.cursor() as result:
+			result.execute("update users set quotas=%s where login=%s;",
+					[quotas,login])
 	def update_admin_role(self,id,admin):
 		with self.connection.cursor() as result:
 			result.execute("update users set admin=%s where id=%s;",
@@ -63,14 +84,11 @@ class User:
 
 	def get_user_by_id(self,id):
 		with self.connection.cursor() as result:
-			result.execute("SELECT login, email, admin FROM users " + 
-					"where id=%s;",[id])
+			result.execute("SELECT login, email, admin ,quotas_limit,quotas "+\
+					"FROM users where id=%s;",[id])
 			return result.fetchone()
 
 	def delete_user_by_id(self,id):
 		with self.connection.cursor() as result:
 			result.execute("DELETE FROM users WHERE id = %s;",[id])
-
-
-
 
