@@ -15,7 +15,7 @@
 		   <div class="form-group">
 			   <tr>
 				   <td> <input type="file" name="myFile" id="upFile"></td>
-				   <td class="right"> <input id="submitFile" type="submit" class="btn btn-default" onclick="prompt();" value="Mettre en ligne"{% if upload_error and not admin %} disabled{% endif %}></td>
+				   <td class="right"> <input {% if not admin %} id="submitFile" {% endif%} type="submit" class="btn btn-default" onclick="prompt();" value="Mettre en ligne"{% if upload_error and not admin %} disabled{% endif %}></td>
 			   </tr>
 		   </div>
 		    <tr><td colspan="2">

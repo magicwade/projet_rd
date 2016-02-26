@@ -8,6 +8,7 @@ value_index={
 
 function prompt(){
 	var progress=document.getElementById("progBar");
+	$('#progBar').prop('class','progress-bar progress-bar-striped active');
 	progress.style = "width:0%";
 	//$("#progBar").show("slow");
 	$("#success-upload").hide("fast");
@@ -30,6 +31,7 @@ function prompt(){
 		    if (xhr.readyState == XMLHttpRequest.DONE) {
 			    	all_my_files = JSON.parse(xhr.responseText);
 			    	$("#success-upload").html("Success !");
+				$('#progBar').prop('class','progress-bar progress-bar-striped');
 				$('#all_files').html("");
 				for (var file in all_my_files){
 					$('#all_files').append(
@@ -60,7 +62,7 @@ function updateProgress(evt){
 			value_index.quotas_used = value_index.quotas_used + value_index.file_tmp;
 		//	sleep(3000);
 			//$("#progBar").hide("fast");
-			$("#success-upload").html("Fichier en cours d'enregistrement sur nos serveursn <br > Veuillez patientez...");
+			$("#success-upload").html("Fichier en cours d'enregistrement sur nos serveurs <br > Veuillez patientez...");
 			$("#success-upload").show("slow");
 		}
 	}
