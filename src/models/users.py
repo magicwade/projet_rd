@@ -2,7 +2,6 @@
 import cherrypy
 import psycopg2
 
-#c=cherrypy.thread_data.db
 class User:
 	"""Class permettant d'intéragir avec table user de la base de donnée"""
 	def __init__(self,connection):

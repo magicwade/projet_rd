@@ -4,13 +4,14 @@ Readme
 Plateform 
 	Linux
 
-Dépendnace
+Dépendance
 	Postgresql
 	Une base de donnée est donné a la racine du projet.
 	- strucure_bdd.sql: contient la structure de la base de donnée
-	- data.sql contient les donnée sql nécessarire (1 compte + quelque utilisateur) 
+	- data.sql contient les donnée sql nécessaire (1 compte + quelques utilisateurs) 
 	
 Installation
+	Installation Postgresql  9.4
 	pip3 cherrypy
 
 Lancemenent de serveur
@@ -22,12 +23,20 @@ Configuration par défaut
 	Login: Master Hand
 	password: test
 	Le serveur démarre sur le port: 7000 host: 0.0.0.0
-	les fichier static sont sauvegardé dans ./public
-	Emplacement des fichier stocké : ./public/storage
+	Les fichier static sont sauvegardé dans ./public #Actuellement INUTILE
 
 Fonctionnalité supporter
-	Actuellement le projet ne permet que la gestion des utilisateurs.
-	Le dépot de fichier non chiffré de manière publique
+	Gestion Utilisateur
+		Création: toutes personne non authentifié
+		Modification: Admin ou propriétaire du compte
+		Supression: Admin
+	Gestion Quotas:
+		L'admin peux modifié les quotas des différent utilisateurs. les régle de quotas ne s'applique pas a ce dernier
+		Les utilisateurs ne peuvent pas dépassé leur quotas limit
+	Gestion Fichier:
+		Dépot/téléchargement fichier des fichier dont l'utilisateur est propriétaire.
+		L'admin ne peux supprimer les fichiers d'un autes utilisateurs qu'en supprimant le compte de l'utilsiateurs.
+		Les fichiers ne sont actuellement pas chiffré
 	
 Contact
 	email: timwade59@gmail.com

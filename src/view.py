@@ -157,7 +157,7 @@ class DeleteFileWebService(object):
 	- 4 supprime l'entrée dans la base files
 	- 5 Récupération du quotas de l'utilisateur + recalcule
 	- 6 Modification du quotas de l'utilisateur
-	- 6 commit
+	- 7 commit
 	"""
 	
 	exposed = True
@@ -290,7 +290,6 @@ class Upload():
 		if not cherrypy.session.get("logged") or \
 				not cherrypy.session.get("id"):
 					raise cherrypy.HTTPRedirect("/")
-		#Get Size file
 		#2
 		myFile.file.seek(0,2)
 		size = myFile.file.tell()
@@ -315,8 +314,6 @@ class Upload():
 				large_object.close()
 				break
 			large_object.write(data)
-#		cherrypy.thread_data.files.update_meta_data_size_by_id(size,
-#				oid_file[0])
 		#6
 		cherrypy.thread_data.users.update_user_quotas_by_id(\
 				cherrypy.session.get('id'),quotas)
@@ -623,6 +620,9 @@ class UpdateQuotasWebService(object):
 
 
 def ConfigurationCheck(config_server):
+	"""Verifie la confiuration  
+	#1 possibilité de choiir un repertoir, 
+	- Completement inutile pour le moment, car je ne m'en sert plus"""
 	if 'StorageDirectory' not in config_server['DEFAULT']:
 		config_server['DEFAULT']['StorageDirectory'] = './public/storage/' 
 		print("'StorageDirectory' non trouvé dans le fichier de "+
@@ -635,13 +635,11 @@ def ConfigurationCheck(config_server):
 			config_server['DEFAULT']['StorageDirectory'] = \
 					config_server['DEFAULT']['StorageDirectory'][1:]
 		#si le 1er charactére n'est pas un / il faut ajouter le
-		#repertoire dans lequel est installer le programe sinon postgres
-		#pete un cable quand j'ajoute l'oid.
+		#repertoire dans lequel est installer le programe.
 		if config_server['DEFAULT']['StorageDirectory'][0] != "/":
 			config_server['DEFAULT']['StorageDirectory'] = \
 					os.path.abspath(os.path.dirname(__file__)) + "/" +\
 					config_server['DEFAULT']['StorageDirectory']
-	print(config_server['DEFAULT']['StorageDirectory'])
 	return config_server
 
 if __name__ == '__main__':
@@ -650,6 +648,7 @@ if __name__ == '__main__':
 	config_server = configparser.ConfigParser()
 	config_server.read('settings.conf')
 	config_server = ConfigurationCheck(config_server)
+	print(cherrypy.dispatch.MethodDispatcher())
 	conf = {
 			'global': {
 				'server.socket_host': "0.0.0.0",
