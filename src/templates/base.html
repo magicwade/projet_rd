@@ -33,7 +33,7 @@
         </div>
         <div id="navbar" class="navbar-collapse collapse">
 		{% if logged %}
-		<span  class="center_name " >Hello {{login}} ! </span>
+		<span  class="center_name " >Hello <span id="current_username">{{login}}</span> ! </span>
 		<!--<span class="center_name"><h4>Hello {{login}} !</h4></span>-->
 		<form class="navbar-form navbar-right" action="/" method="POST"> 
               	<input type="hidden" value=1 class="form-control" name="logout">

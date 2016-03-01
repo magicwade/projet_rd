@@ -54,9 +54,7 @@
 					   <td>
 						   <strong>Search</strong>
 					</td>
-					<td>	<input type="text" placeholder="filename" id="search_namefile" class="form-control">
-					   </td>
-					   <td>
+										   <td>
 						   {% if admin %}
 						   <select id="search_user_id" class="form-control">
 							   <option value="{{id}}">{{login}}</option>
@@ -71,6 +69,10 @@
 
 						   {% endif %}
 					   </td>
+					   <td>	
+						   <input type="text" placeholder="filename" id="search_namefile" class="form-control">
+					   </td>
+
 					   <td>
 						   <button type ="button" class="btn btn-default" id="search_files">
 							   Chercher !

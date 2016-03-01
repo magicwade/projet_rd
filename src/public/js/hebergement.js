@@ -45,6 +45,7 @@ function prompt(){
 							'<td>'+
 						'</tr>');
 				}
+
 		    }
 	}
 	xhr.upload.addEventListener("progress", updateProgress, false);
