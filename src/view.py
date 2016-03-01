@@ -87,16 +87,25 @@ class HomePage():
 		if cherrypy.session.get("logged"):
 			myuser = cherrypy.thread_data.users.get_user_by_id(\
 				cherrypy.session.get("id"))
-			print(myuser)
 			if myuser[3] > myuser[4]:
 				upload_error = False
-		print(upload_error)
+
+		"""si admin j'ai besoin de la liste de tout les utilsateurs, sauf
+		l'utilisateur actuel pour la recherche"""
+		all_users = None
+		if cherrypy.session.get('admin'):
+			all_users = cherrypy.thread_data.users.get_all_users()
+			all_usernames_except_current = \
+					[user for user in all_users if user[1]!=myuser[0]]
+			all_users = all_usernames_except_current
+			
 
 		tmpl = env.get_template('index.html')
 		return tmpl.render(home=True,logged=cherrypy.session.get("logged"), 
 				login=cherrypy.session.get("login"),
 				admin=cherrypy.session.get("admin"),all_my_files=all_my_files,
-				myuser=myuser,upload_error=upload_error)
+				myuser=myuser,upload_error=upload_error,all_users=all_users,
+				id=cherrypy.session.get('id'))
 
 class Download():
 	exposed = True
@@ -613,6 +622,31 @@ class UpdateQuotasWebService(object):
 		data['size'] = size
 		return json.dumps(data)
 
+class SearchUserFilesWebService(object):
+	exposed = True
+	
+	@cherrypy.tools.accept(media='application/json')
+	def GET(self,search_user_id=-1,search_name_file=""):
+		""" Cette Fonction renvoie la liste des fichiers d'un utilisateur d'un
+		utilisateur en fonction de son id et /ou du nom du fichier
+		- 1 si id =-1 je cherche dans l'utilisateurs faisant la requete, si il
+		  vaut -2 je cherche dans tous les utilsiateur
+		"""
+		
+		if cherrypy.session.get('admin'):
+			if search_user_id == "-2":
+				list_files = cherrypy.thread_data.files.get_all_files()
+			else:
+				list_files = \
+						cherrypy.thread_data.files.get_all_files_by_user_id(
+								search_user_id)
+		else:
+			list_files = \
+					cherrypy.thread_data.files.get_all_files_by_user_id(\
+					cherrypy.session.get('id'))
+		list_send=[file for file in list_files if search_name_file in file[1]]
+		return json.dumps(list_send)
+
 
 
 
@@ -648,7 +682,6 @@ if __name__ == '__main__':
 	config_server = configparser.ConfigParser()
 	config_server.read('settings.conf')
 	config_server = ConfigurationCheck(config_server)
-	print(cherrypy.dispatch.MethodDispatcher())
 	conf = {
 			'global': {
 				'server.socket_host': "0.0.0.0",
@@ -674,6 +707,7 @@ if __name__ == '__main__':
 	webapp = HomePage()
 	webapp.registerwebservice = RegisterWebService()
 	webapp.deletefilewebservice = DeleteFileWebService()
+	webapp.searchuserfileswebservice = SearchUserFilesWebService()
 	webapp.upload = Upload()
 	webapp.download = Download()
 

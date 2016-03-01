@@ -83,6 +83,26 @@ $('#upFile').change(function(){
 });
 
 
+$('#search_files').click(function(){
+	search_namefile = $('#search_namefile').val()
+	search_user_id = $('#search_user_id option:selected').val()
+	$.get('/searchuserfileswebservice/' + search_user_id + "/" + search_namefile ,function(json){
+		var data = JSON.parse(json)
+		$('#all_files').html("");
+		for (var file in data){
+			$('#all_files').append(
+				'<tr>'+
+					'<td>'+data[file][1]+'</td>'+
+					'<td class="center">'+data[file][2]+'</td>'+
+					'<td class="center"><a href="/download/'+data[file][0]+'"><button class="btn btn-default btn-sm" type="button"> 						   <span aria-hiddent="true" class="glyphicon glyphicon-download-alt"> </span></button></a>'+
+					'</td>'+
+					'<td class="center">'+
+						'<form action="../deletefilewebservice" method="POST"><input type="hidden" value="'+data[file][0]+'" name="file_id"><button class="btn btn-default btn-sm" type="submit"><span aria-hiddent="true" class="glyphicon glyphicon-glass"></span></button></form>'+
+					'<td>'+
+				'</tr>');
+		}
+	});
+});
 
 
 

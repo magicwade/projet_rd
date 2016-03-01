@@ -49,6 +49,35 @@
 		  <hr>
 		   <div class="bg-default">
 			   <div class="center"><h2>Download</h2></div>
+			   <table class="table">
+				   <tr>
+					   <td>
+						   <strong>Search</strong>
+					</td>
+					<td>	<input type="text" placeholder="filename" id="search_namefile" class="form-control">
+					   </td>
+					   <td>
+						   {% if admin %}
+						   <select id="search_user_id" class="form-control">
+							   <option value="{{id}}">{{login}}</option>
+							   <option  value="-2">All</option>
+							   {% for user in all_users %}
+							   <option value="{{user[0]}}">{{user[1]}}</option>
+							   {% endfor %}
+						   </select>
+						   {% else %}
+						   <strong>User:</strong> {{login}}
+
+
+						   {% endif %}
+					   </td>
+					   <td>
+						   <button type ="button" class="btn btn-default" id="search_files">
+							   Chercher !
+						   </button>
+				   	</td>
+				   </tr>
+			   </table><br>
 		   <table class="table">
 			   <tbody>
 			   </tbody>

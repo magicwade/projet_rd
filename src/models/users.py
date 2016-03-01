@@ -37,7 +37,7 @@ class User:
 		with self.connection.cursor() as result:
 			result.execute("SELECT id,login,admin,quotas_limit,quotas " +\
 					"FROM users;")
-			return result.fetchall()
+			return list(result.fetchall())
 
 	def add_user(self,identifiant,email,mdp):
 		"""ajoute un utilisateur dans la bdd"""

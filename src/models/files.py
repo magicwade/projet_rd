@@ -13,9 +13,15 @@ class File:
 		"""renvoie la liste de tout les utilisateurs enregistrés dans le
 		site"""
 		with self.connection.cursor() as result:
-			result.execute("SELECT id, filename, size  FROM files " + \
+			result.execute("SELECT id, filename, size,data  FROM files " + \
 					"where user_id = %s;",[user_id])
 			return result.fetchall()
+
+	def get_all_files(self):
+		with self.connection.cursor() as result:
+			result.execute("SELECT id, filename, size,data  FROM files;")
+			return result.fetchall()
+
 
 	def get_meta_data_file_by_id(self,id):
 		"""renvoie la liste de tout les utilisateurs enregistré dans le site"""
