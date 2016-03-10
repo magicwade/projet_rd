@@ -30,18 +30,18 @@
 		   <div>
 		   <table class="table"> 
 			   <tr> 
-				   <th>quotas max</th>
 				   <th>quotas used</th>
+				   <th>quotas max</th>
 				   <th></th>
 			   </tr>
 			   <tr>
-				   <td><span id="quotas_limit">{{myuser[3]}}</span>
-				   </td>
-				   <td class>/ <span id="quotas_used">{{myuser[4]}}</span><span id="quotas_used_p"></span></td>
-				   <td >
+				   <td class><span id="quotas_used_readable"></span> (<span id="quotas_used">{{myuser[4]}}</span>)<span id="quotas_used_p"></span></td>
+				   <!--<td >
 					   <button  id="update_quotas" class="btn btn-default" type="button">
 						   Actualiser
 					   </button>
+				   </td>-->
+				   <td>/ <span id="quotas_limit_readable"></span> (<span id="quotas_limit">{{myuser[3]}}</span>)
 				   </td>
 			   </tr>
 		   </table>

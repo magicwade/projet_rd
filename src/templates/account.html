@@ -12,20 +12,12 @@
 				   <form method="POST" action="/account">
 				   <div class="form-group">
 					   <label for="new_login"> Login</label>
-					   <input type="text" class="form-control" name="new_login" placeholder="{{myuser[0]}}">
+					   <input type="text" class="form-control" name="new_login" value="{{myuser[0]}}">
 				   </div>
 
 				   <div class="form-group">
 					   <label for="new_email"> Email </label>
-					   <input type="email" class="form-control" name="new_email" placeholder="{{myuser[1]}}">
-				   </div>
-				   <div class="form-group">
-					   <label for="new_password"> Password</label>
-					   <input type="password" class="form-control" name="new_password">
-				   </div>
-				   <div class="form-group">
-					   <label for="new_retype_password">Password Check</label>
-					   <input type="password" class="form-control" name="new_retype_password">
+					   <input type="email" class="form-control" name="new_email" value="{{myuser[1]}}">
 				   </div>
 				   {% if admin %}
 				   <div class="form-group">
@@ -58,20 +50,16 @@
 				   {% endif %}
 				   <table class="table"> 
 					   <tr> 
+						   <th>quotas used</th><th></th>
 						   <th>quotas max</th>
-						   <th>quotas used</th>
 						   <th></th>
 					   </tr>
 					   <tr>
-						   <td>{% if admin %}<input type="text" class="form-control" name="new_quotas_limit" id="quotas_limit" placeholder="{{myuser[3]}}"   >
+						   <td class><span id="quotas_used">{{myuser[4]}}</span><span id="quotas_used_p"></span></td>
+						   <td><span>/</span></td>
+						   <td> {% if admin %}<input type="text" class="form-control" name="new_quotas_limit" id="quotas_limit" value="{{myuser[3]}}"   >
 							{% else %} {{myuser[3]}}
 							{% endif %}
-						   </td>
-						   <td class>/ <span id="quotas_used">{{myuser[4]}}</span><span id="quotas_used_p"></span></td>
-						   <td >
-							   <button  id="update_quotas" class="btn btn-default" type="button">
-								   Actualiser
-							   </button>
 						   </td>
 					   </tr>
 				   </table>

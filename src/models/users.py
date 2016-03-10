@@ -1,4 +1,3 @@
-
 import cherrypy
 import psycopg2
 
@@ -13,14 +12,16 @@ class User:
 		if email is None:
 			email=login
 		with self.connection.cursor() as result:
-			result.execute("SELECT login,email,admin,quotas_limit,quotas " + \
-			"from users where login=%s or email=%s ;", [login,email.lower()])
+			result.execute("SELECT " + \
+					"login,email,admin,quotas_limit,quotas_limit,quotas,salt"+ \
+					" from users where login=%s or email=%s ;",
+					[login,email.lower()])
 			return result.fetchall()
 	
 	def get_user_by_login(self,login):
 		with self.connection.cursor() as result:
-			result.execute("SELECT id, login,email,admin,quotas_limit,quotas " + \
-			"from users where login=%s;", [login])
+			result.execute("SELECT id, login,email,admin,quotas_limit,quotas"+\
+					",salt from users where login=%s;", [login])
 			return result.fetchone()
 
 	def get_user_by_login_or_email_and_password(self,login,mdp):
@@ -35,16 +36,16 @@ class User:
 	def get_all_users(self):
 		"""renvoie la liste de tout les utilisateurs enregistré dans le site"""
 		with self.connection.cursor() as result:
-			result.execute("SELECT id,login,admin,quotas_limit,quotas " +\
+			result.execute("SELECT id,login,admin,quotas_limit,quotas " + \
 					"FROM users;")
 			return result.fetchall()
 
-	def add_user(self,identifiant,email,mdp):
+	def add_user(self,identifiant,email,mdp,salt):
 		"""ajoute un utilisateur dans la bdd"""
 		with self.connection.cursor() as result:
-			result.execute("INSERT INTO USERS (login, email,password) " +
-				"VALUES (%s, %s, %s) RETURNING id;",
-				[identifiant,email.lower(),mdp])
+			result.execute("INSERT INTO USERS (login, email,password,salt) " +
+				"VALUES (%s, %s, %s,%s) RETURNING id;",
+				[identifiant,email.lower(),mdp,salt])
 			return result.fetchone()
 
 	def update_user_login_by_id(self,id,login):
@@ -52,10 +53,10 @@ class User:
 			result.execute("update users set login=%s where id=%s;",
 					[login,id])
 	
-	def update_user_password_by_id(self,id,password):
+	def update_user_password_and_salt_by_id(self,id,password,salt):
 		with self.connection.cursor() as result:
-			result.execute("update users set password=%s where id=%s;", 
-				[password,id])
+			result.execute("update users set password=%s and salt=%s " + \
+					"where id=%s;",[password,salt,id])
 
 	def update_user_email_by_id(self,id,email):
 		with self.connection.cursor() as result:

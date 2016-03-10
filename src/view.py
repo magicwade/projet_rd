@@ -8,9 +8,12 @@ import json
 from jinja2 import Environment, FileSystemLoader
 import hashlib
 import psycopg2
+import functions.affichage
+import functions.security_tools
 from models.users import User
 from models.files import File
 from cherrypy.lib import static
+
 env = Environment(loader=FileSystemLoader('templates'))
 def connect(thread_index):
 	# Create a connection and store it in the current thread
@@ -27,8 +30,12 @@ class HomePage():
 		si un login et un mdp sont fournit alors j'authentifie
 		si logout alors je supprime les session
 		"""
-		myuser = cherrypy.thread_data.users.get_user_by_login_or_email_and_password(\
-				login,hashlib.sha512(password.encode()).hexdigest())
+		myuser = None
+		if login !="" and password !="":
+			user_tmp = cherrypy.thread_data.users.get_user_by_login_or_email(login)
+			salt = user_tmp[0][6]
+			myuser=cherrypy.thread_data.users.get_user_by_login_or_email_and_password(\
+					login,hashlib.sha512((password+salt).encode()).hexdigest())
 		tmpl = env.get_template('index.html')
 		if logout == "":
 			if myuser:
@@ -49,39 +56,10 @@ class HomePage():
 		"""
 		Affiche la page home
 		"""
-		all_files = []
 		all_my_files = cherrypy.thread_data.files.get_all_files_by_user_id(\
 				cherrypy.session.get("id"))
-		for i,file in enumerate(all_my_files):
-			unite="o"
-			table_unite= 'O','K','M','G'
-			"""
-			actuellement j'ai une liste contenant des tuple
-			information concernant mon fichier), je vais etre
-			contraint  de changer ces tuple en liste.
-			Jinja ne me permet pas de faire de traitement 
-			dans la vue. 
-			je suis donc contraint de recréer un nouvelle objet 
-			ou de changé celui dont je dispose en liste, 
-			si je veux pouvoir changer une des variable contenue 
-			dans ce tuple.
-			La variable que je veux changer est la taille du fichier
-			"1245423203" ce qui est bcp trop moche je préfére avoir 
-			1.24G.
-			"""
-			all_my_files[i]=list(all_my_files[i])
-			for p in reversed(range(0,4)):
-				if int( all_my_files[i][2]) > math.pow(10,p*3):
-					unite = table_unite[p]
-					""" j'arrondi la variable et j'ajoute une unité en
-					fonction du résultat (o/k/m/g)"""
-					all_my_files[i][2]=round(int(all_my_files[i][2]) / \
-							int(math.pow(10,p*3)),1)
-					if all_my_files[i][2] == int(all_my_files[i][2]):
-						all_my_files[i][2] = int(all_my_files[i][2])
-					all_my_files[i][2] = str(all_my_files[i][2]) + " " + \
-							table_unite[p]
-					break
+		#modification de l'unité size (humanreadable)
+		all_my_files = functions.affichage.affiche_liste_files(all_my_files)
 		upload_error = True
 		myuser=None
 		if cherrypy.session.get("logged"):
@@ -122,7 +100,6 @@ class Download():
 		if not cherrypy.session.get("logged") or id_file == None:
 			raise cherrypy.HTTPRedirect("/")
 		myFile = cherrypy.thread_data.files.get_meta_data_file_by_id(id_file)
-		print(myFile[0])
 		cherrypy.response.headers['Content-Disposition']='attachment; '+ \
 				' filename="{0}"'.format(myFile[0])
 		cherrypy.response.headers['Content-Type']='application/octet-stream'
@@ -176,7 +153,6 @@ class DeleteFileWebService(object):
 			raise cherrypy.HTTPRedirect("/")
 
 		#1
-		print(file_id)
 		my_file = cherrypy.thread_data.files.get_meta_data_file_by_id(file_id)
 		#2
 		file_size = my_file[1]
@@ -254,9 +230,11 @@ class RegisterWebService(object):
 		list_users = cherrypy.thread_data.users.get_user_by_login_or_email(\
 				identifiant,email)
 		if not list_users:
+			salt = functions.security_tools.generate_salt(16)
 			new_user_id = cherrypy.thread_data.users.add_user(\
 					identifiant, email,
-					hashlib.sha512(password.encode()).hexdigest())
+					hashlib.sha512((password+salt).encode()).hexdigest(),
+					salt)
 			cherrypy.session['login'] = identifiant
 			cherrypy.session['logged'] = True
 			cherrypy.session['id'] = new_user_id
@@ -316,7 +294,6 @@ class Upload():
 		print("wtf")
 		large_object = cherrypy.thread_data.files.get_file_handler_by_oid(\
 				oid_file[1],'rwb')
-		print("ok")
 		while True:
 			data = myFile.file.read(4096)
 			if not data:
@@ -329,26 +306,9 @@ class Upload():
 		#7
 		cherrypy.thread_data.files.commit()
 
-		all_files = []
 		all_my_files = cherrypy.thread_data.files.get_all_files_by_user_id(\
 				cherrypy.session.get("id"))
-		for i,file in enumerate(all_my_files):
-			unite="o"
-			table_unite= 'O','K','M','G'
-			all_my_files[i]=list(all_my_files[i])
-			for p in reversed(range(0,4)):
-				if int( all_my_files[i][2]) > math.pow(10,p*3):
-					unite = table_unite[p]
-					""" j'arrondi la variable et j'ajoute une unité en
-					fonction du résultat (o/k/m/g)"""
-					all_my_files[i][2]=round(int(all_my_files[i][2]) / \
-							int(math.pow(10,p*3)),1)
-					if all_my_files[i][2] == int(all_my_files[i][2]):
-						all_my_files[i][2] = int(all_my_files[i][2])
-					all_my_files[i][2] = str(all_my_files[i][2]) + " " + \
-							table_unite[p]
-					break
-
+		all_my_files = functions.affichage.affiche_liste_files(all_my_files)
 		return json.dumps(all_my_files)
 
 class MyAccount():
@@ -385,9 +345,11 @@ class MyAccount():
 		if not cherrypy.session.get("id"):
 			raise cherrypy.HTTPRedirect("/")
 		if new_password != "" and new_retype_password == new_password:
-			cherrypy.thread_data.users.update_user_password_by_id(\
+			salt = functions.security_tools.generate_salt(16)
+			cherrypy.thread_data.users.update_user_password_and_salt_by_id(\
 					cherrypy.session.get("id"), 
-					hashlib.sha512(new_password.encode()).hexdigest())
+					hashlib.sha512((new_password+salt).encode()).hexdigest(),
+					salt)
 
 			success += "<li>Mot de passe modifié</li>"
 		elif new_password != "" and new_retype_password != new_password:
@@ -489,13 +451,14 @@ class Account():
 		success = ""
 		error = ""
 
-		#MOT DE PASS
+		"""#MOT DE PASS
 		if new_password != "" and new_retype_password == new_password:
 			cherrypy.thread_data.users.update_user_password_by_id(\
 					user_id,hashlib.sha512(new_password.encode()).hexdigest())
 			success += "<li>Mot de passe modifié</li>"
 		elif new_password != "" and new_retype_password != new_password:
 			error += "<li>Les Mots de passe ne sont pas identiques</li>"
+			"""
 		#MAIL
 		if re.match(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)",
 				new_email):

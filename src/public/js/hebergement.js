@@ -12,7 +12,6 @@ function prompt(){
 	progress.style = "width:0%";
 	//$("#progBar").show("slow");
 	$("#success-upload").hide("fast");
-//	alert(progress)
 	var x=document.getElementById("upFile").value;
 	if(x==null || x==""){
 		alert("No file chosen. Please go back and try again");
@@ -72,7 +71,6 @@ $('#upFile').change(function(){
 	var progress=document.getElementById("progBar");
 	progress.style = "width:0%";
 	progress.innerHTML="0%";
-	alert(this.files[0].size);
 	value_index.file_tmp = this.files[0].size;
 	if (value_index.file_tmp + value_index.quotas_used > value_index.quotas_limit){
 		$('#submitFile').prop('disabled', true)
@@ -81,10 +79,19 @@ $('#upFile').change(function(){
 		$('#submitFile').prop('disabled', false)
 	}
 	$('#quotas_used').html(value_index.file_tmp + value_index.quotas_used)
+	quotas_human_readable();
 });
 
 
 $('#search_files').click(function(){
+	search_files();
+});
+$('#search_namefile').keypress(function(e){
+	if (e.which == 13) {
+		search_files();
+	}
+});
+function search_files(){
 	search_namefile = $('#search_namefile').val()
 	search_user_id = $('#search_user_id option:selected').val()
 	$.get('/searchuserfileswebservice/' + search_user_id + "/" + search_namefile ,function(json){
@@ -103,9 +110,28 @@ $('#search_files').click(function(){
 				'</tr>');
 		}
 	});
-});
+}
+
+function quotas_human_readable(){
+	$('#quotas_used_readable').html(convert_bsize_to_human_readable(parseInt($('#quotas_used').html())));
+	$('#quotas_limit_readable').html(convert_bsize_to_human_readable(parseInt($('#quotas_limit').html())));
+
+}
 
 
-
-
-
+function convert_bsize_to_human_readable(size){
+	unite = "o";
+	table_unite=['O','k','M','G'];
+	for (var p=3 ;p>=0;p=p-1){
+		diviseur = Math.pow(10,p*3);
+		print
+		if (parseInt(size) > diviseur){
+			unite = table_unite[p];
+			//Arrondi de la variable et ajout d'une unité (o/k/M/G)
+			size = Math.round((parseInt(size) / diviseur)*10)/10;
+			return size + " " + table_unite[p];
+		}
+	}
+	return size;	
+}
+quotas_human_readable();
