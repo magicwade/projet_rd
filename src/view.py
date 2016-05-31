@@ -32,7 +32,8 @@ class HomePage():
 		"""
 		myuser = None
 		if login !="" and password !="":
-			user_tmp = cherrypy.thread_data.users.get_user_by_login_or_email(login)
+			user_tmp = cherrypy.thread_data.users.get_user_by_login_or_email(
+					login)
 			salt = user_tmp[0][6]
 			myuser=cherrypy.thread_data.users.get_user_by_login_or_email_and_password(\
 					login,hashlib.sha512((password+salt).encode()).hexdigest())
@@ -255,7 +256,6 @@ class RegisterWebService(object):
 				login=cherrypy.session.get("login"),
 				admin=cherrypy.session.get("admin"))
 
-
 class Upload():
 	exposed = True
 	"""
@@ -269,7 +269,7 @@ class Upload():
 		- 2 calcule de la taille
 		- 3 Récupération des info user
 		- 4 si le quotas n'est pas dépassé ou si je suis admin je passe
-		- 5 ecriture de du fichier en base
+		- 5 ecriture du fichier en base
 		- 6 update du nouveau quotas
 		- 7 commit
 		"""
